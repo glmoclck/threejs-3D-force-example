@@ -37,11 +37,11 @@ you can visit '/' and '/square',
 
 ## Implémentations possibles 
 
-Vous avez peut être remarqué que les données passées aux vues sont dans des fichiers csv ou json.. on pourrait peut être prévoir des données envoyées par une BDD ! 
+You may have noticed that data are sent from a json or csv file, it might be received from a BDD !
 
-Les modales sont plutôt vides, elles pourraient bénéficier d'un travail esthétique ! 
+Modales are quite simple, they might need some visual implementation
 
-## Liens utiles : 
+## Links : 
 
 [https://github.com/d3/d3/wiki](https://github.com/d3/d3/wiki)
 
