@@ -1,0 +1,17 @@
+{
+  "legacyWatch": true,
+  "restartable": "rs",
+  "ignore": [".git", "node_modules/**/node_modules", ".csv"],
+  "verbose": true,
+  "execMap": {
+    "js": "node --harmony"
+  },
+  "events": {
+    "restart": "osascript -e 'display notification \"App restarted due to:\n'$FILENAME'\" with title \"nodemon\"'"
+  },
+  "watch": ["src", "index.js"],
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "ext": "js,json,ts"
+}

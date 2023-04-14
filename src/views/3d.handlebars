@@ -1,0 +1,193 @@
+<head>
+  <style> body { margin: 0; } </style>
+
+  <script src="//unpkg.com/d3-dsv"></script>
+  <script src="//unpkg.com/dat.gui"></script>
+  <script src="//unpkg.com/d3-octree"></script>
+  <script src="//unpkg.com/d3-force-3d"></script>
+
+  <script src="//unpkg.com/3d-force-graph"></script>
+  <!--<script src="../../dist/3d-force-graph.js"></script>-->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+
+
+  
+</head>
+
+<body>
+  <div id="graph"></div>
+
+<div class="modal" id="modal">
+  <div class="modal-background"></div>
+  <div class="modal-content">
+    <div class="title"></div>
+    <br>
+    <div class="content"></div>
+  </div>
+  <button class="modal-close is-large" aria-label="close"></button>
+</div>
+
+
+
+<!-- 3D generation -->
+
+  <script>
+    // controls
+    const controls = { 'DAG Orientation': null};
+    const gui = new dat.GUI();
+    gui.add(controls, 'DAG Orientation', ['td', 'bu', 'lr', 'rl', 'zout', 'zin', 'radialout', 'radialin', null])
+      .onChange(orientation => graph && graph.dagMode(orientation));
+
+    // highlight 
+    const highlightNodes = new Set();
+    let hoverNode = null;
+    
+    // colors
+    let lastFolder ='';
+    let colorIndex = 0;
+    const colors = [
+      'rgba(171, 34, 34, 1)',
+      'rgba(255, 208, 0, 1)',
+      'rgba(30, 184, 97, 1)',
+      'rgba(45, 151, 189, 1)',
+      'rgba(116, 124, 165, 1)',
+      'rgba(186, 97, 140, 1)',
+      'rgba(160, 42, 184, 1)',
+      'rgba(40, 19, 176, 1)',
+      'rgba(234, 249, 217, 1)',
+      'rgba(226, 212, 186, 1)',
+
+    ]
+    const groupNodes = {}
+    // graph config
+    const NODE_REL_SIZE = 1;
+    const graph = ForceGraph3D()
+      .dagMode(null)
+      .dagLevelDistance(200)
+      .backgroundColor('#101020')
+      .linkColor(() => 'rgba(255,255,255,0.2)')
+      //.nodeAutoColorBy('module')
+
+      // HIGHLIGHT
+      .nodeColor(handleColors)
+      .nodeRelSize(NODE_REL_SIZE)
+      .nodeId('path')
+      .nodeVal('size')
+      .nodeLabel('path')
+      .nodeOpacity(0.9)
+      .linkDirectionalParticles(2)
+      .linkDirectionalParticleWidth(0.8)
+      .linkDirectionalParticleSpeed(0.006)
+      .d3Force('collision', d3.forceCollide(node => Math.cbrt(node.size) * NODE_REL_SIZE))
+      .d3VelocityDecay(0.3)
+      .onNodeClick(handleDisplayArticle)
+      // HIGHLIGHT
+      .onNodeHover(handleHoverArticle);
+
+    // Decrease repel intensity
+    graph.d3Force('charge').strength(-20);
+
+  function drawChart(data) {
+        console.log(data);
+        const nodes = [], links = [];
+        data.forEach(({ size, path, content }) => {
+          const levels = path.split('/'),
+            level = levels.length - 1,
+            module = level > 0 ? levels[1] : null, // here we can change the color
+            leaf = levels.pop(),
+            parent = levels.join('/');
+          const node = {
+            path,
+            leaf,
+            module,
+            size: +size || 20,
+            level,
+            content
+          };
+
+          nodes.push(node);
+          if (parent) {
+            links.push({source: parent, target: path, targetNode: node});
+          }
+          console.log(path);
+        });
+        graph(document.getElementById('graph'))
+          .graphData({ nodes, links });
+      
+      // adding listener to modal
+      // closing modal
+      document.querySelectorAll('.modal-close,.modal-background')
+      .forEach(elem => elem
+      .addEventListener('click', (e) => e.target.parentElement.classList.remove('is-active')));
+  }
+
+  // Callbacks ------------------------------------------------------------
+  function handleDisplayArticle(node) {
+    console.log(node);
+    const modal = document.querySelector('#modal');
+    modal.classList.add('is-active');
+    modal.querySelector('.title').textContent =  node.module;
+    modal.querySelector('.content').textContent =  node.content;
+
+  }
+
+  function handleColors(node) {
+    const color = highlightNodes.has(node) ? node === hoverNode ? 'rgb(255,0,0,1)' : 'rgba(255,160,0,0.8)' : null
+    if (color === null) {
+     // handling drawing color
+     const path = node.path.split('/');
+     const folderOfFile = path[path.length -2];
+     console.log("folder of file" ,folderOfFile);
+     if (groupNodes.hasOwnProperty(folderOfFile)) {
+        return groupNodes[folderOfFile]
+     } else {
+        groupNodes[folderOfFile] = colors[colorIndex];
+        colorIndex++;
+        if (colorIndex >= colors.length -1) {
+          colorIndex = 0;
+          }
+      }
+      lastFolder = node.path.split('/').splice(-2);
+     return colors[colorIndex];
+    }
+    return color;
+  }
+
+  // HIGHLIGHT
+  function handleHoverArticle(node) {
+    if (!node) {
+      highlightNodes.clear();
+
+      return
+    }
+    console.log(node);
+    highlightNodes.add(node);
+    hoverNode = node || null;
+    updateHighlight();
+
+
+    console.log(node);
+  }
+
+  // Light ------------------------------------------------------------
+    function updateHighlight() {
+      // trigger update of highlighted objects in scene
+      graph
+        .nodeColor(graph.nodeColor())
+    }
+
+  // Init ------------------------------------------------------------
+
+   async function getData(){
+        try {
+        const data = await d3.csv('http://localhost:3000/d3-dependencies.csv');
+        console.log("---> data", data)
+        drawChart(data);
+      } catch (e) {
+        console.log(e);
+      }
+    }
+    getData();
+  </script>
+</body>
